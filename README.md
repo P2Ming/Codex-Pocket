@@ -1,6 +1,6 @@
 # Codex Pocket
 
-通过自己的 NAS 和 FRP 隧道，在 Android 手机上查看并继续电脑中的 Codex 会话。
+通过自己的 NAS 和 FRP 隧道，在网页或 Android 手机上查看并继续电脑中的 Codex 会话。
 
 仓库分为三部分：
 
@@ -23,17 +23,6 @@ Android App / 手机浏览器
            ▼
  Codex Pocket + codex app-server
 ```
-
-## 安全说明
-
-本仓库不包含真实域名、服务器地址、FRP Token、访问 PIN 或签名证书。
-
-- NAS 的真实配置写入 `nas/frps.toml`，该文件已被 `.gitignore` 排除。
-- 电脑的真实配置写入 `desktop/.env`，该文件已被 `.gitignore` 排除。
-- App 默认使用 `https://pocket.example.com` 占位地址。安装后通过齿轮按钮设置真实 HTTPS 地址。
-- FRP Token 与网页访问 PIN 必须使用不同的随机值。
-- TCP 7001 只监听 NAS 回环地址；不要直接暴露到公网。
-- TCP 7000 只允许可信局域网或 VPN 中的电脑访问。
 
 ## 部署顺序
 
