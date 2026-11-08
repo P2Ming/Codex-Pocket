@@ -1,0 +1,26 @@
+# Local secrets and machine-specific configuration
+**/.env
+**/.env.*
+!**/.env.example
+nas/frps.toml
+
+# Signing keys and certificates
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# Generated packages and build output
+app/unpackage/
+*.apk
+*.aab
+*.zip
+*.log
+
+# Runtime state
+desktop/.codex-pocket/
+desktop/node_modules/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,6 @@
+bindPort = 7000
+auth.method = "token"
+auth.token = "REPLACE_WITH_LONG_RANDOM_TOKEN"
+transport.tls.force = true
+proxyBindAddr = "127.0.0.1"
+allowPorts = [{ start = 7001, end = 7010 }]

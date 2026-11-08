@@ -1,0 +1,55 @@
+{
+    "id" : "H55DC0803",
+    "name" : "Codex Pocket",
+    "version" : {
+        "name" : "1.0.5",
+        "code" : 105
+    },
+    "description" : "Codex Pocket NAS mobile client",
+    "launch_path" : "index.html",
+    "developer" : {
+        "name" : "",
+        "email" : "",
+        "url" : ""
+    },
+    "icons" : {
+        "72" : "icons/72.png"
+    },
+    "screenOrientation" : [ "portrait-primary" ],
+    "permissions" : {
+        "Invocation" : {
+            "description" : "调整键盘与系统导航区域"
+        },
+        "Push" : {
+            "description" : "在应用后台时显示会话完成通知"
+        }
+    },
+    "plus" : {
+        "statusbar" : {
+            "background" : "#101319",
+            "style" : "light"
+        },
+        "distribute" : {
+            "icons" : {
+                "android" : {
+                    "ldpi" : "icons/48.png",
+                    "mdpi" : "icons/48.png",
+                    "hdpi" : "icons/72.png",
+                    "xhdpi" : "icons/96.png",
+                    "xxhdpi" : "icons/144.png",
+                    "xxxhdpi" : "icons/192.png"
+                }
+            },
+            "google" : {
+                "permissions" : [
+                    "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+                    "<uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>",
+                    "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>"
+                ]
+            },
+            "ios" : {
+                "dSYMs" : false
+            }
+        }
+    }
+}

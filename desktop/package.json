@@ -1,0 +1,11 @@
+{
+  "name": "codex-pocket-nas",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Access local Codex sessions from a phone through your own NAS frp tunnel",
+  "bin": { "codex-pocket": "bin/codex-pocket.mjs" },
+  "scripts": { "start": "node bin/codex-pocket.mjs" },
+  "engines": { "node": ">=22" },
+  "license": "GPL-2.0"
+}

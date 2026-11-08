@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101319">
+<title>Codex Pocket</title>
+<style>
+:root{font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;color:#e9eef6;background:#101319}*{box-sizing:border-box}body{margin:0;min-height:100dvh}button,input{font:inherit}button{cursor:pointer}[hidden]{display:none!important}
+.topbar{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;background:#131820;border-bottom:1px solid #29323c}.brand,.actions{display:flex;align-items:center;gap:10px}.mark{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#72d2a4;color:#10271a;font-size:22px;font-weight:800}.brand strong{font-size:15px}.brand button,.actions button,.close{width:34px;height:34px;border:1px solid #394452;border-radius:8px;background:#222b35;color:#e1eae6;font-size:19px;line-height:1}
+.notification-setting{display:flex;align-items:center;gap:9px;font-size:13px}.notification-setting input{width:17px;height:17px;padding:0;accent-color:#72d2a4}
+main{min-height:calc(100dvh - 54px);display:grid;place-items:center;padding:24px}.connection{text-align:center;max-width:350px}.hero-mark{display:grid;place-items:center;width:68px;height:68px;margin:0 auto 20px;border-radius:17px;background:#1e4735;border:1px solid #3b7557;color:#a7edc4;font-size:42px}.connection h1{font-size:21px;margin:0 0 7px}.connection p{color:#a4b5ad;margin:0 0 18px}.connection button,.save{border:0;border-radius:8px;background:#72d2a4;color:#10271a;padding:11px 18px;font-weight:700}.detail{font-size:12px;color:#8ea299;overflow-wrap:anywhere;margin-top:15px}
+dialog{width:min(92vw,420px);border:1px solid #3c4e47;border-radius:8px;background:#1a222c;color:#e9eef6;padding:22px;box-shadow:0 24px 70px #0009}dialog::backdrop{background:#080d10c9}dialog form{display:grid;gap:12px}.settings-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.settings-head h2{font-size:20px;margin:0}.settings-head .close{font-size:19px}label{font-size:12px;font-weight:700}input{width:100%;min-width:0;padding:12px;border:1px solid #465660;border-radius:8px;background:#101820;color:#fff}.hint{font-size:12px;color:#9caeb1;margin:0 0 8px}.theme-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}.theme-options button{border:1px solid #465660;border-radius:8px;padding:10px;background:#26343b;color:#dce9e8}.theme-options button[aria-pressed="true"]{background:#367e5b;color:#fff;border-color:#367e5b}#error{min-height:1.4em;color:#ff9d8d;font-size:12px}
+html[data-theme="light"]{background:#f6f8f7;color:#182720}html[data-theme="light"] .topbar{background:#fff;border-color:#d9e5de}html[data-theme="light"] .brand button,html[data-theme="light"] .actions button,html[data-theme="light"] .close{background:#edf3ef;color:#284332;border-color:#cbdcd0}html[data-theme="light"] .hero-mark{background:#e0f2e7;color:#216a42;border-color:#aad5ba}html[data-theme="light"] .connection p,html[data-theme="light"] .detail,html[data-theme="light"] .hint{color:#60756a}html[data-theme="light"] dialog{background:#fff;color:#182720;border-color:#c9d9ce}html[data-theme="light"] input{background:#f7faf8;color:#182720;border-color:#c8d9ce}html[data-theme="light"] .theme-options button{background:#edf3ef;color:#284332;border-color:#c8d9ce}html[data-theme="light"] .theme-options button[aria-pressed="true"]{background:#367e5b;color:#fff;border-color:#367e5b}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="brand"><button id="openMenu" type="button" aria-label="打开会话列表" title="会话列表" hidden>☰</button><span class="mark" aria-hidden="true">✳</span><strong id="shellTitle">Codex Pocket</strong></div><div class="actions"><button id="themeToggle" type="button" aria-label="切换白天黑夜主题" title="切换主题">☀</button><button id="openSettings" type="button" aria-label="设置服务器地址" title="设置">⚙</button></div></header>
+<main><div class="connection"><div class="hero-mark" aria-hidden="true">✳</div><h1>Codex Pocket</h1><p id="message">正在连接你的 NAS…</p><button id="retry" type="button" hidden>重试连接</button><div id="detail" class="detail"></div></div></main>
+<dialog id="settings" aria-labelledby="settingsTitle"><form id="settingsForm"><div class="settings-head"><h2 id="settingsTitle">设置</h2><button id="closeSettings" class="close" type="button" aria-label="关闭设置">✕</button></div><label for="serverAddress">服务器地址</label><input id="serverAddress" type="url" inputmode="url" spellcheck="false" required><p class="hint">地址变更后保存即可连接新服务器。</p><label class="notification-setting" for="notifications"><input id="notifications" type="checkbox">后台完成通知</label><p id="monitorStatus" class="hint" aria-live="polite"></p><div id="error" role="alert"></div><button class="save" type="submit">保存并连接</button></form></dialog>
+<script>
+(function () {
+  const defaultServer = 'https://pocket.example.com';
+  const serverKey = 'codex-pocket-server';
+  const themeKey = 'codex-pocket-theme';
+  const notificationKey = 'codex-pocket-notifications';
+  const shellId = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2, '0')).join('');
+  const $ = id => document.getElementById(id);
+  let server = localStorage.getItem(serverKey) || defaultServer;
+  let theme = localStorage.getItem(themeKey) || 'dark';
+  let view = null;
+  let loaded = false;
+  let loadTimer = null;
+  let healthTimer = null;
+  let generation = 0;
+  let backgrounded = false;
+  let notificationsEnabled = localStorage.getItem(notificationKey) !== 'off';
+  const notifiedTurns = new Set();
+  let monitorToken = '';
+  let monitorThread = '';
+  let monitorLastTurn = '';
+  let monitorTimer = null;
+  let nativeMonitorHandler = null;
+  let nativeMonitorTask = null;
+  let wakeLock = null;
+  let monitorInFlight = false;
+  let backgroundSince = 0;
+  let failedHealthChecks = 0;
+  let keyboardTimer = null;
+  let lastKeyboardInset = -1;
+  function updateMonitorStatus(message) {
+    $('monitorStatus').textContent = notificationsEnabled ? message || (monitorThread ? '已监听当前会话' : '选择会话后开始监听') : '通知已关闭';
+  }
+
+  window.setPocketMonitor = payload => {
+    if (!payload || typeof payload !== 'object') return;
+    if (typeof payload.token === 'string') monitorToken = payload.token;
+    if (typeof payload.threadId === 'string' && payload.threadId !== monitorThread) {
+      monitorThread = payload.threadId;
+      monitorLastTurn = '';
+    }
+    if (typeof payload.title === 'string') $('shellTitle').textContent = payload.title.trim().slice(0, 28) || 'Codex Pocket';
+    updateMonitorStatus();
+    if (monitorToken && monitorThread) void pollCompletion();
+  };
+
+  function pollCompletion() {
+    if (typeof plus === 'undefined' || monitorInFlight) return Promise.resolve();
+    monitorInFlight = true;
+    return new Promise(resolve => {
+      let xhr;
+      let finished = false;
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        monitorInFlight = false;
+        clearTimeout(timeout);
+        if (xhr.status === 200) {
+          try {
+            const state = JSON.parse(xhr.responseText);
+            const threadId = String(state.threadId || '');
+            if (['light', 'dark'].includes(state.theme) && state.theme !== theme) applyTheme(state.theme);
+            if (threadId !== monitorThread) { monitorThread = threadId; monitorLastTurn = ''; }
+            if (typeof state.title === 'string') $('shellTitle').textContent = state.title.trim().slice(0, 28) || 'Codex Pocket';
+            updateMonitorStatus(threadId ? '已监听当前会话' : '选择会话后开始监听');
+            if (state.command === 'settings' && !backgrounded) openSettings();
+            const completed = String(state.completedTurnId || '');
+            if (completed && completed !== monitorLastTurn && backgrounded && Number(state.completedAt) >= backgroundSince) {
+              window.notifyPocketDone({ threadId, turnId: completed, title: $('shellTitle').textContent });
+            }
+            if (completed) monitorLastTurn = completed;
+          } catch {}
+        } else updateMonitorStatus('通知监控连接失败');
+        resolve();
+      };
+      const timeout = setTimeout(() => { if (finished) return; finished = true; monitorInFlight = false; try { xhr?.abort?.(); } catch {} updateMonitorStatus('通知监控连接失败'); resolve(); }, 12000);
+      try {
+        xhr = new plus.net.XMLHttpRequest();
+        xhr.onreadystatechange = () => { if (xhr.readyState === 4) finish(); };
+        xhr.onerror = () => { updateMonitorStatus('通知监控连接失败'); finish(); };
+        xhr.open('GET', server + '/api/shell-state', true);
+        xhr.setRequestHeader('Authorization', 'Bearer ' + shellId);
+        xhr.send();
+      } catch { monitorInFlight = false; updateMonitorStatus('通知监控连接失败'); clearTimeout(timeout); resolve(); }
+    });
+  }
+
+  function stopBackgroundMonitor() {
+    clearInterval(monitorTimer);
+    monitorTimer = null;
+    try { nativeMonitorHandler?.removeCallbacks(nativeMonitorTask); } catch {}
+  }
+
+  function startBackgroundMonitor() {
+    stopBackgroundMonitor();
+    acquireBackgroundWakeLock();
+    void pollCompletion();
+    try {
+      const Handler = plus.android.importClass('android.os.Handler');
+      const Looper = plus.android.importClass('android.os.Looper');
+      nativeMonitorHandler ||= new Handler(Looper.getMainLooper());
+      nativeMonitorTask ||= plus.android.implements('java.lang.Runnable', {
+        run() {
+          if (!backgrounded) return;
+          try { if (!wakeLock?.isHeld()) acquireBackgroundWakeLock(); } catch {}
+          void pollCompletion();
+          nativeMonitorHandler.postDelayed(nativeMonitorTask, 5000);
+        }
+      });
+      if (nativeMonitorHandler.post(nativeMonitorTask)) return;
+    } catch { /* Older runtimes can use the JavaScript timer. */ }
+    monitorTimer = setInterval(pollCompletion, 5000);
+  }
+  function acquireBackgroundWakeLock() {
+    try {
+      if (!wakeLock) {
+        const activity = plus.android.runtimeMainActivity();
+        const Context = plus.android.importClass('android.content.Context');
+        const PowerManager = plus.android.importClass('android.os.PowerManager');
+        const manager = activity.getSystemService(Context.POWER_SERVICE);
+        wakeLock = manager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, 'CodexPocket:CompletionMonitor');
+        wakeLock.setReferenceCounted(false);
+      }
+      if (!wakeLock.isHeld()) wakeLock.acquire(60 * 60 * 1000);
+    } catch { updateMonitorStatus('后台唤醒失败，请允许系统后台运行'); }
+  }
+  function releaseBackgroundWakeLock() {
+    try { if (wakeLock?.isHeld()) wakeLock.release(); } catch {}
+  }
+  function startForegroundMonitor() {
+    stopBackgroundMonitor();
+    void pollCompletion();
+    monitorTimer = setInterval(pollCompletion, 1500);
+  }
+
+  function requestNotificationPermission() {
+    if (typeof plus === 'undefined' || !notificationsEnabled) return;
+    try {
+      if (parseInt(plus.os.version, 10) >= 13) {
+        plus.android.requestPermissions(['android.permission.POST_NOTIFICATIONS'], () => {}, () => {});
+      }
+    } catch { /* Notification permission can also be granted in Android settings. */ }
+  }
+
+  window.notifyPocketDone = payload => {
+    if (!backgrounded || !notificationsEnabled || !payload?.threadId || !plus?.push?.createMessage) return;
+    const key = payload.threadId + ':' + (payload.turnId || 'unknown');
+    if (notifiedTurns.has(key)) return;
+    notifiedTurns.add(key);
+    if (notifiedTurns.size > 100) notifiedTurns.delete(notifiedTurns.values().next().value);
+    const title = String(payload.title || '').trim().slice(0, 60);
+    try { plus.push.createMessage(title ? title + ' · 回复已完成' : '会话回复已完成', { threadId: payload.threadId }, { title: 'Codex Pocket' }); }
+    catch { notifiedTurns.delete(key); }
+  };
+
+  function syncSystemBars() {
+    if (typeof plus === 'undefined') return;
+    const color = theme === 'light' ? '#f6f8f7' : '#101319';
+    try { plus.android.runtimeMainActivity().getWindow().setSoftInputMode(16); } catch {}
+    try {
+      plus.navigator?.setStatusBarBackground?.(color);
+      plus.navigator?.setStatusBarStyle?.(theme === 'light' ? 'dark' : 'light');
+      const activity = plus.android.runtimeMainActivity();
+      const window = activity.getWindow();
+      const Color = plus.android.importClass('android.graphics.Color');
+      const decor = window.getDecorView();
+      window.setNavigationBarColor(Color.parseColor(color));
+      window.setNavigationBarContrastEnforced?.(false);
+      decor.setSystemUiVisibility(2 | 4096);
+    } catch { /* Keep the matching WebView background on devices with restricted native APIs. */ }
+    view?.setStyle?.({ background: color, bottom: '0px' });
+  }
+
+  function syncKeyboardInset() {
+    if (!loaded || backgrounded || !view || typeof plus === 'undefined') return;
+    try {
+      const decor = plus.android.runtimeMainActivity().getWindow().getDecorView();
+      const rect = plus.android.newObject('android.graphics.Rect');
+      decor.getWindowVisibleDisplayFrame(rect);
+      const bottom = Number(plus.android.getAttribute(rect, 'bottom'));
+      const pixels = Math.max(0, Number(decor.getRootView().getHeight()) - bottom);
+      const inset = Math.round(pixels / (plus.screen?.scale || window.devicePixelRatio || 1));
+      const keyboardInset = inset >= 120 ? inset : 0;
+      if (keyboardInset !== lastKeyboardInset) {
+        lastKeyboardInset = keyboardInset;
+        view.evalJS(`window.PocketKeyboard?.setInset(${keyboardInset})`);
+      }
+    } catch { /* adjustResize remains the primary keyboard behavior. */ }
+  }
+
+  function startKeyboardTracking() {
+    clearInterval(keyboardTimer);
+    syncKeyboardInset();
+    keyboardTimer = setInterval(syncKeyboardInset, 200);
+  }
+
+  function parseServer(value) {
+    let url;
+    try { url = new URL(value.trim()); } catch { throw new Error('请输入完整地址，例如 https://pocket.example.com'); }
+    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password ||
+        !['/', '/app'].includes(url.pathname) || url.search || url.hash) {
+      throw new Error('请输入服务器根地址，不含账号、路径或参数');
+    }
+    return url.origin;
+  }
+  function applyTheme(value) {
+    if (!['light', 'dark'].includes(value)) return;
+    theme = value;
+    localStorage.setItem(themeKey, theme);
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]').content = theme === 'light' ? '#f6f8f7' : '#101319';
+    $('themeToggle').textContent = theme === 'light' ? '☾' : '☀';
+    if (loaded) view?.evalJS?.(`window.PocketPreferences?.setTheme(${JSON.stringify(theme)}, false)`);
+    syncSystemBars();
+  }
+  function closeView() {
+    clearTimeout(loadTimer);
+    clearInterval(healthTimer);
+    clearInterval(keyboardTimer);
+    keyboardTimer = null;
+    lastKeyboardInset = -1;
+    stopBackgroundMonitor();
+    monitorToken = '';
+    monitorThread = '';
+    monitorLastTurn = '';
+    updateMonitorStatus();
+    failedHealthChecks = 0;
+    if (view) { view.close('none'); view = null; }
+    loaded = false;
+    $('openMenu').hidden = true;
+    $('shellTitle').textContent = 'Codex Pocket';
+  }
+  function showError(message) {
+    generation++;
+    closeView();
+    $('message').textContent = '连接失败，请检查服务器是否在线。';
+    $('detail').textContent = message || server;
+    $('retry').hidden = false;
+  }
+  function startHealthChecks(current) {
+    clearInterval(healthTimer);
+    healthTimer = setInterval(async () => {
+      if (backgrounded || $('settings').open || current !== generation) return;
+      const online = await probeServer();
+      if (backgrounded || current !== generation) return;
+      failedHealthChecks = online ? 0 : failedHealthChecks + 1;
+      if (failedHealthChecks >= 2) showError('无法连接 ' + server);
+    }, 15000);
+  }
+  function probeServer() {
+    return new Promise(resolve => {
+      let settled = false;
+      let xhr;
+      const finish = online => { if (settled) return; settled = true; clearTimeout(timer); resolve(online); };
+      const timer = setTimeout(() => { xhr?.abort?.(); finish(false); }, 8000);
+      try {
+        xhr = new plus.net.XMLHttpRequest();
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState !== 4) return;
+          let valid = false;
+          try { valid = xhr.status === 200 && typeof JSON.parse(xhr.responseText).authenticated === 'boolean'; } catch {}
+          finish(valid);
+        };
+        xhr.onerror = () => finish(false);
+        xhr.open('GET', server + '/api/session', true);
+        xhr.send();
+      } catch { finish(false); }
+    });
+  }
+  async function openPocket() {
+    const current = ++generation;
+    closeView();
+    $('retry').hidden = true;
+    $('message').textContent = '正在连接你的 NAS…';
+    $('detail').textContent = '';
+    const url = server + '/app?theme=' + theme + '&shell=1&shellId=' + shellId;
+    if (typeof plus === 'undefined') { location.replace(url); return; }
+    if (!await probeServer()) { if (current === generation && !backgrounded) showError('无法连接 ' + server); return; }
+    if (current !== generation) return;
+    view = plus.webview.create(url, 'pocket-remote', { top: '0px', bottom: '0px', softinputMode: 'adjustResize', background: theme === 'light' ? '#f6f8f7' : '#101319', bounce: 'none' });
+    syncSystemBars();
+    loadTimer = setTimeout(() => { if (current === generation && !backgrounded) showError('连接超时：' + server); }, 20000);
+    view.addEventListener('loaded', async () => {
+      if (current !== generation) return;
+      const online = await probeServer();
+      if (backgrounded) return;
+      if (!online) { if (current === generation) showError('无法连接 ' + server); return; }
+      if (current !== generation) return;
+      clearTimeout(loadTimer);
+      loaded = true;
+      $('openMenu').hidden = false;
+      view.evalJS('window.syncPocketShell?.()');
+      if (!$('settings').open) {
+        view.show('fade-in', 200);
+        syncSystemBars();
+      }
+      if (!backgrounded) { startHealthChecks(current); startKeyboardTracking(); startForegroundMonitor(); }
+    });
+    view.addEventListener('error', event => { if (current === generation && !backgrounded) showError(event?.message || server); });
+    view.addEventListener('close', () => { if (current === generation) { view = null; loaded = false; } });
+  }
+  function openSettings() {
+    if ($('settings').open) return;
+    $('serverAddress').value = server;
+    $('notifications').checked = notificationsEnabled;
+    updateMonitorStatus();
+    $('error').textContent = '';
+    view?.hide?.('none');
+    $('settings').showModal();
+  }
+  function closeSettings() {
+    $('settings').close();
+    if (loaded) view?.show('none');
+  }
+  function backgroundPocket() {
+    if (typeof plus === 'undefined') return;
+    try {
+      const activity = plus.android.runtimeMainActivity();
+      try { plus.android.invoke(activity, 'moveTaskToBack', true); }
+      catch { activity.moveTaskToBack(true); }
+    } catch { /* Keep the app alive if the Android bridge is unavailable. */ }
+  }
+  window.backgroundPocket = backgroundPocket;
+  function handleBack() {
+    if ($('settings').open) { closeSettings(); return; }
+    if (view && loaded) view.evalJS('window.PocketBack?.()');
+    backgroundPocket();
+  }
+  window.setPocketServer = value => {
+    try {
+      server = parseServer(value);
+      localStorage.setItem(serverKey, server);
+      if ($('settings').open) $('settings').close();
+      openPocket();
+    } catch (error) { if (!$('settings').open) openSettings(); $('error').textContent = error.message; }
+  };
+  window.openPocketSettings = openSettings;
+  window.setPocketTheme = applyTheme;
+  $('openSettings').onclick = openSettings;
+  $('notifications').onchange = () => {
+    notificationsEnabled = $('notifications').checked;
+    localStorage.setItem(notificationKey, notificationsEnabled ? 'on' : 'off');
+    if (notificationsEnabled) requestNotificationPermission();
+    updateMonitorStatus();
+  };
+  $('openMenu').onclick = () => view?.evalJS?.('document.getElementById("menu")?.click()');
+  $('closeSettings').onclick = closeSettings;
+  $('settings').addEventListener('close', () => { if (loaded) view?.show('none'); });
+  $('themeToggle').onclick = () => applyTheme(theme === 'light' ? 'dark' : 'light');
+  $('settingsForm').onsubmit = event => { event.preventDefault(); window.setPocketServer($('serverAddress').value); };
+  $('retry').onclick = openPocket;
+  applyTheme(theme);
+  document.addEventListener('plusready', () => { plus.key?.addEventListener?.('backbutton', handleBack, false); syncSystemBars(); requestNotificationPermission(); openPocket(); }, false);
+  document.addEventListener('pause', () => { backgroundSince = Date.now(); backgrounded = true; clearInterval(healthTimer); clearInterval(keyboardTimer); clearTimeout(loadTimer); startBackgroundMonitor(); }, false);
+  document.addEventListener('resume', () => { backgrounded = false; stopBackgroundMonitor(); releaseBackgroundWakeLock(); plus.push?.clear?.(); syncSystemBars(); if (!$('settings').open && (!$('retry').hidden || !view || !loaded)) void openPocket(); else if (view && loaded) { startHealthChecks(generation); startKeyboardTracking(); startForegroundMonitor(); } }, false);
+  setTimeout(() => { if (typeof plus === 'undefined') openPocket(); }, 1000);
+})();
+</script>
+</body>
+</html>
