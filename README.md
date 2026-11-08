@@ -2,6 +2,8 @@
 
 通过自己的 NAS 和 FRP 隧道，在网页或 Android 手机上查看并继续电脑中的 Codex 会话。
 
+由于Codex消息队列的设置，仅支持在退出桌面端时发送消息。
+
 仓库分为三部分：
 
 - `nas/`：NAS 上的 frps 容器和反向代理配置示例。
@@ -23,6 +25,13 @@ Android App / 手机浏览器
            ▼
  Codex Pocket + codex app-server
 ```
+## 功能
+
+1. 支持新建对话、对话选择、消息发送和引导。
+2. 支持模型和推理强度选择。
+3. 对话进行的实时状态（进行中和结束）。
+4. 支持黑白主题和服务器地址及密码设置。
+5. 输出完成通知。
 
 ## 部署顺序
 
@@ -48,3 +57,8 @@ Android App / 手机浏览器
 - 更新 `app/` 后，提高 `manifest.json` 的版本号和版本代码，再重新打包 APK。
 
 项目基于 GPL-2.0 发布。Codex App Server 属于实验能力，升级 Codex CLI 后建议重新验证兼容性。
+
+<img width="1440" height="2960" alt="IMG_20261108_131552" src="https://github.com/user-attachments/assets/c471862b-ce95-4269-afbc-ef1a36026962" />
+<img width="1440" height="2961" alt="IMG_20261108_131620" src="https://github.com/user-attachments/assets/fdca78e4-902d-45f8-8d0c-2a11f14d50f5" />
+<img width="1440" height="2945" alt="IMG_20261108_131609" src="https://github.com/user-attachments/assets/5eeb6177-c16c-4870-b064-a456fcb797b3" />
+
